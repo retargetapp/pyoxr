@@ -3,7 +3,7 @@ from setuptools import  setup
 setup(
     name='pyoxr',
     packages=['pyoxr'],
-    version='1.3',
+    version='1.6',
     description='Python client for openexchangerates.org',
     author='RetargetApp',
     url='https://github.com/retargetapp/pyoxr',

@@ -97,11 +97,20 @@ class OXRClient(object):
         prepared = request.prepare()
 
         response = self.session.send(prepared)
-        if response.status_code != requests.codes.ok:
-            raise OXRStatusError(request, response)
         json = response.json()
         if json is None:
             raise OXRDecodeError(request, response)
+
+        if response.status_code != requests.codes.ok:
+            if json["message"] == "invalid_base":
+                raise OXRInvalidBaseError(request, response)
+            elif json["message"] == "invalid_app_id":
+                raise OXRInvalidAppIdError(request, response)
+            elif json["message"] == "missing_app_id":
+                raise OXRMissingAppIdError(request, response)
+            elif json["message"] == "not_allowed":
+                raise OXRNotAllowedError(request, response)
+            raise OXRStatusError(request, response, json["message"], json["description"])
         return json
 
     def __get_exchange_rates(self, endpoint, base, symbols, payload=None):
@@ -126,9 +135,45 @@ class OXRError(Exception):
         self.response = resp
 
 
+class OXRInvalidBaseError(OXRError):
+    """Requested exchange rates for bad base"""
+
+    def __str__(self):
+        return "Invalid base"
+
+
+class OXRNotAllowedError(OXRError):
+    """Doesn’t have permission to access requested route/feature"""
+
+    def __str__(self):
+        return "Doesn’t have permission to access requested route/feature"
+
+
+class OXRInvalidAppIdError(OXRError):
+    """Requested exchange rates with invalid app id"""
+
+    def __str__(self):
+        return "Invalid App ID"
+
+
+class OXRMissingAppIdError(OXRError):
+    """Requested exchange rates without app id"""
+
+    def __str__(self):
+        return "Missing App ID"
+
+
 class OXRStatusError(OXRError):
     """API status code error"""
-    pass
+
+    def __init__(self, req, resp, message, description):
+        super(OXRError, self).__init__(req, resp)
+
+        self.message = message
+        self.description = description
+
+    def __str__(self):
+        return self.description
 
 
 class OXRDecodeError(OXRError):
